@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHOLAYAN COMMUNICATION - Opening Hours</title>
+<style>
+  /* Base Styles */
+  body {
+    font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    padding: 20px;
+    margin: 0;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  
+  /* --- Live Status Bar Container --- */
+  .status-bar-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: clamp(280px, 90%, 600px);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  .header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+  }
+
+  .time-display {
+    font-size: 2.2em;
+    font-weight: 500;
+    color: #222;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .next-action {
+    font-size: 0.95em;
+    font-weight: 400;
+    color: #555;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    text-align: right;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .next-action.visible {
+    opacity: 1;
+  }
+
+  .main-status-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 3em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .main-status {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.6em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .main-status.visible {
+    opacity: 1;
+  }
+
+  .date-display {
+    font-size: 0.85em;
+    font-weight: 400;
+    color: #777;
+    margin-top: 10px;
+  }
+
+  /* Color themes for status messages */
+  .open { background-color: #4CAF50; }
+  .closed { background-color: #f44336; }
+  .today-closed { background-color: #f44336; }
+  .opening-soon { background-color: #2196F3; }
+  .closing-soon { background-color: #FF9800; }
+  .emergency-closed { background-color: #D32F2F; }
+
+  /* --- Weekly Hours Table --- */
+  .weekly-hours-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    width: clamp(300px, 90%, 500px);
+    text-align: center;
+  }
+
+  .weekly-hours-container h2 {
+    color: #2c3e50;
+    font-size: 1.5em;
+    margin-bottom: 10px;
+  }
+
+  .hours-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+  }
+
+  .hours-list li {
+    font-size: 1.1em;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+  }
+  .hours-list li:last-child { border-bottom: none; }
+  
+  .hours-list li.highlight-open {
+    background-color: #e8f5e9;
+    font-weight: bold;
+    color: #2e7d32;
+    border-radius: 8px;
+  }
+  .hours-list li.highlight-closed {
+    background-color: #ffcccb;
+    color: #c0392b;
+    font-weight: bold;
+    border-radius: 8px;
+  }
+
+  .hours { text-align: right; }
+  .hours p { margin: 0; line-height: 1.4; }
+  
+  .hours p.closed { color: inherit; font-weight: inherit; }
+
+  .emergency-notice {
+    background-color: #fff3e0;
+    border-left: 5px solid #ff9800;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 8px;
+    font-size: 1em;
+    color: #e65100;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+  <h1>DHOLAYAN COMMUNICATION</h1>
+
+  <div id="shopStatusContainer" class="status-bar-container">
+    <div class="header-info">
+      <div id="liveTime" class="time-display"></div>
+      <div id="nextAction" class="next-action"></div>
+    </div>
+    <div id="mainStatusWrapper" class="main-status-wrapper"></div>
+    <div id="dateDisplay" class="date-display"></div>
+  </div>
+
+  <div class="weekly-hours-container">
+    <h2>Weekly Opening Hours</h2>
+    <ul class="hours-list" id="hours-display">
+      <li><p>Loading hours...</p></li>
+    </ul>
+    <div id="emergency-notice" class="emergency-notice" style="display: none;"></div>
+  </div>
+
+<script>
+  // ** IMPORTANT: REPLACE WITH YOUR JSONBIN.IO BIN URL **
+  const hoursDataUrl = 'https://api.jsonbin.io/v3/b/68b3a68743b1c97be931a348/latest';
+  
+  // ** NO MASTER KEY IS NEEDED ON THE PUBLIC-FACING WEBSITE **
+
+  const liveTimeElement = document.getElementById('liveTime');
+  const dateDisplayElement = document.getElementById('dateDisplay');
+  const nextActionElement = document.getElementById('nextAction');
+  const mainStatusWrapper = document.getElementById('mainStatusWrapper');
+  const hoursDisplayEl = document.getElementById('hours-display');
+  const emergencyNoticeEl = document.getElementById('emergency-notice');
+
+  let currentHoursData = null;
+  let isInitialStatusRendered = false;
+  let mainStatusElement;
+
+  const SHOP_TIMEZONE = 'Asia/Colombo';
+  const WARNING_PERIOD_MINUTES = 30;
+  const MAX_FONT_SIZE_EM = 3.2;
+  const MIN_FONT_SIZE_EM = 1.6;
+  const FONT_SIZE_STEP_EM = 0.01;
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  function getShopTimeData(dateObject) {
+      const options = {
+          timeZone: SHOP_TIMEZONE, year: 'numeric', month: 'numeric', day: 'numeric',
+          hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23'
+      };
+      const shopLocalTimeParts = new Intl.DateTimeFormat('en-US', options).formatToParts(dateObject);
+      let year, month, day, hours, minutes, seconds;
+      for (const part of shopLocalTimeParts) {
+          switch (part.type) {
+              case 'year': year = parseInt(part.value); break;
+              case 'month': month = parseInt(part.value) - 1; break;
+              case 'day': day = parseInt(part.value); break;
+              case 'hour': hours = parseInt(part.value); break;
+              case 'minute': minutes = parseInt(part.value); break;
+              case 'second': seconds = parseInt(part.value); break;
+          }
+      }
+      const shopLocalTime = new Date(year, month, day, hours, minutes, seconds);
+      return {
+          date: shopLocalTime, dayOfWeek: shopLocalTime.getDay(),
+          hours: shopLocalTime.getHours(), minutes: shopLocalTime.getMinutes()
+      };
+  }
+
+  function formatTime(hour, minute) {
+      const h = hour % 12 || 12;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const m = String(minute).padStart(2, '0');
+      return `${h}:${m} ${ampm}`;
+  }
+
+  function parseTime(timeStr) {
+    if (!timeStr) return null;
+    const [time, ampm] = timeStr.split(' ');
+    let [h, m] = time.split(':').map(Number);
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  }
+
+  function adjustFontSizeToFit(element, container) {
+      if (!element || !container) return;
+      element.style.fontSize = `${MAX_FONT_SIZE_EM}em`;
+      element.style.whiteSpace = 'nowrap';
+      const containerWidth = container.offsetWidth;
+      let currentFontSizeEm = MAX_FONT_SIZE_EM;
+      let iterations = 0;
+      const maxIterations = 300;
+      while (element.scrollWidth > containerWidth && currentFontSizeEm > MIN_FONT_SIZE_EM && iterations < maxIterations) {
+          currentFontSizeEm = Math.max(MIN_FONT_SIZE_EM, currentFontSizeEm - FONT_SIZE_STEP_EM);
+          element.style.fontSize = `${currentFontSizeEm}em`;
+          iterations++;
+      }
+      iterations = 0;
+      const tolerance = 5;
+      while (element.scrollWidth < (containerWidth - tolerance) && currentFontSizeEm < MAX_FONT_SIZE_EM && iterations < maxIterations) {
+          currentFontSizeEm = Math.min(MAX_FONT_SIZE_EM, currentFontSizeEm + FONT_SIZE_STEP_EM);
+          element.style.fontSize = `${currentFontSizeEm}em`;
+          iterations++;
+      }
+      if (element.scrollWidth > containerWidth) {
+          element.style.whiteSpace = 'normal';
+          element.style.overflow = 'hidden';
+          element.style.textOverflow = 'ellipsis';
+      } else {
+          element.style.whiteSpace = 'nowrap';
+          element.style.overflow = 'visible';
+          element.style.textOverflow = 'clip';
+      }
+  }
+
+  async function fetchAllData() {
+      try {
+          const response = await fetch(hoursDataUrl);
+          const data = await response.json();
+          currentHoursData = data.record;
+      } catch (error) {
+          console.error('Failed to fetch data:', error);
+          currentHoursData = {
+              openingHours: {},
+              emergencyNotice: { enabled: true, liveMessage: "STATUS ERROR", weeklyMessage: "Failed to load data." }
+          };
+      }
+  }
+
+  function getShopStatus() {
+    if (!currentHoursData) return 'closed';
+    const { dayOfWeek, hours, minutes } = getShopTimeData(new Date());
+    const openingHours = currentHoursData.openingHours;
+    const emergencyNotice = currentHoursData.emergencyNotice;
+
+    if (emergencyNotice?.enabled) {
+      return 'emergency-closed';
+    }
+
+    const todayHours = openingHours[days[dayOfWeek]];
+    const currentTimeInMinutes = hours * 60 + minutes;
+
+    let isAnyOpenSlotToday = todayHours.some(slot => slot.toLowerCase() !== 'closed');
+    if (!isAnyOpenSlotToday) {
+      return 'today-closed';
+    }
+
+    for (const timeSlot of todayHours) {
+        if (timeSlot.toLowerCase() === 'closed') continue;
+        const [openStr, closeStr] = timeSlot.split(' - ');
+        const openTimeInMinutes = parseTime(openStr);
+        const closeTimeInMinutes = parseTime(closeStr);
+
+        if (currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes < closeTimeInMinutes) {
+            return 'open';
+        }
+    }
+    return 'closed';
+  }
+
+  function updateLiveStatus() {
+      if (!currentHoursData) return;
+      const { date: shopNow, dayOfWeek, hours, minutes } = getShopTimeData(new Date());
+      liveTimeElement.textContent = formatTime(hours, minutes);
+      dateDisplayElement.textContent = shopNow.toLocaleDateString('en-US', { timeZone: SHOP_TIMEZONE, year: 'numeric', month: 'long', day: 'numeric' });
+      let statusClass = '', statusMessage = '', nextActionMessage = '';
+      const openingHours = currentHoursData.openingHours;
+      const emergencyNotice = currentHoursData.emergencyNotice;
+      nextActionElement.classList.remove('visible');
+      const todayHours = openingHours[days[dayOfWeek]];
+      const currentTimeInMinutes = hours * 60 + minutes;
+
+      if (emergencyNotice?.enabled) {
+          statusClass = 'emergency-closed';
+          statusMessage = emergencyNotice.liveMessage.toUpperCase();
+          nextActionMessage = '';
+      } else {
+          let hasOpenSlotToday = todayHours.some(slot => slot.toLowerCase() !== 'closed');
+          
+          if (!hasOpenSlotToday) {
+            statusClass = 'today-closed';
+            statusMessage = 'Today Closed';
+            let nextOpenDayInfo = null;
+            for (let i = 1; i <= 7; i++) {
+                const nextDayIndex = (dayOfWeek + i) % 7;
+                const nextDayHours = openingHours[days[nextDayIndex]];
+                if (nextDayHours && nextDayHours.some(slot => slot.toLowerCase() !== 'closed')) {
+                    const firstOpenSlot = nextDayHours.find(slot => slot.toLowerCase() !== 'closed');
+                    nextOpenDayInfo = { dayIndex: nextDayIndex, time: firstOpenSlot };
+                    break;
+                }
+            }
+            if (nextOpenDayInfo) {
+                const nextDayName = (nextOpenDayInfo.dayIndex === (dayOfWeek + 1) % 7) ? 'Tomorrow' : days[nextOpenDayInfo.dayIndex];
+                nextActionMessage = `Opens ${nextDayName} at ${nextOpenDayInfo.time.split(' - ')[0]}`;
+            }
+          } else {
+            let foundOpenPeriod = false;
+            let nextOpenTimeToday = null;
+            let firstOpenTimeToday = null;
+            
+            for (let i = 0; i < todayHours.length; i++) {
+                const timeSlot = todayHours[i];
+                if (timeSlot.toLowerCase() === 'closed') continue;
+                
+                const [openStr, closeStr] = timeSlot.split(' - ');
+                const openTimeInMinutes = parseTime(openStr);
+                const closeTimeInMinutes = parseTime(closeStr);
+                
+                if (firstOpenTimeToday === null) {
+                    firstOpenTimeToday = openTimeInMinutes;
+                }
+
+                if (currentTimeInMinutes >= openTimeInMinutes && currentTimeInMinutes < closeTimeInMinutes) {
+                    foundOpenPeriod = true;
+                    statusClass = 'open';
+                    statusMessage = 'Open Now';
+                    nextActionMessage = `Closes at ${closeStr}`;
+                    if ((closeTimeInMinutes - currentTimeInMinutes) <= WARNING_PERIOD_MINUTES) {
+                        statusClass = 'closing-soon';
+                        statusMessage = 'Closing Soon';
+                    }
+                    break;
+                } else if (currentTimeInMinutes < openTimeInMinutes) {
+                    nextOpenTimeToday = openStr;
+                    break;
+                }
+            }
+            
+            if (!foundOpenPeriod) {
+                statusClass = 'closed';
+                statusMessage = 'Closed Now';
+                if (nextOpenTimeToday) {
+                    if (currentTimeInMinutes < firstOpenTimeToday) {
+                        nextActionMessage = `Opens at ${nextOpenTimeToday}`;
+                    } else {
+                        nextActionMessage = `Reopens at ${nextOpenTimeToday}`;
+                    }
+                } else {
+                    let nextOpenDayInfo = null;
+                    for (let i = 1; i <= 7; i++) {
+                        const nextDayIndex = (dayOfWeek + i) % 7;
+                        const nextDayHours = openingHours[days[nextDayIndex]];
+                        if (nextDayHours && nextDayHours.some(slot => slot.toLowerCase() !== 'closed')) {
+                            const firstOpenSlot = nextDayHours.find(slot => slot.toLowerCase() !== 'closed');
+                            nextOpenDayInfo = { dayIndex: nextDayIndex, time: firstOpenSlot };
+                            break;
+                        }
+                    }
+                    if (nextOpenDayInfo) {
+                      const nextDayName = (nextOpenDayInfo.dayIndex === (dayOfWeek + 1) % 7) ? 'Tomorrow' : days[nextOpenDayInfo.dayIndex];
+                      nextActionMessage = `Opens ${nextDayName} at ${nextOpenDayInfo.time.split(' - ')[0]}`;
+                    }
+                }
+            }
+          }
+      }
+      
+      if (!mainStatusElement) {
+          mainStatusElement = document.createElement('div');
+          mainStatusElement.id = 'mainStatus';
+          mainStatusElement.className = 'main-status';
+          mainStatusWrapper.appendChild(mainStatusElement);
+      }
+      if (mainStatusElement.textContent !== statusMessage || !mainStatusElement.classList.contains(statusClass)) {
+          mainStatusElement.classList.remove('visible');
+          setTimeout(() => {
+              mainStatusElement.textContent = statusMessage;
+              mainStatusElement.className = `main-status ${statusClass}`;
+              adjustFontSizeToFit(mainStatusElement, mainStatusWrapper);
+              mainStatusElement.classList.add('visible');
+          }, isInitialStatusRendered ? 300 : 0);
+      } else {
+          mainStatusElement.classList.add('visible');
+          adjustFontSizeToFit(mainStatusElement, mainStatusWrapper);
+      }
+      isInitialStatusRendered = true;
+      nextActionElement.textContent = nextActionMessage;
+      if (nextActionMessage) nextActionElement.classList.add('visible');
+      document.getElementById('shopStatusContainer').classList.add('visible');
+  }
+
+  function updateWeeklyHours() {
+      if (!currentHoursData) return;
+      const hoursDisplay = document.getElementById('hours-display');
+      hoursDisplay.innerHTML = '';
+      const todayIndex = getShopTimeData(new Date()).dayOfWeek;
+      const openingHours = currentHoursData.openingHours;
+      const emergencyNotice = currentHoursData.emergencyNotice;
+      
+      let shopStatusNow = getShopStatus();
+
+      days.forEach((day, index) => {
+          const li = document.createElement('li');
+          li.dataset.day = day;
+          
+          if (index === todayIndex) {
+            if (shopStatusNow === 'open' || shopStatusNow === 'closing-soon' || shopStatusNow === 'opening-soon') {
+              li.classList.add('highlight-open');
+            } else {
+              li.classList.add('highlight-closed');
+            }
+          }
+          
+          const daySpan = document.createElement('span');
+          daySpan.textContent = day;
+          li.appendChild(daySpan);
+          const hoursContainer = document.createElement('div');
+          hoursContainer.classList.add('hours');
+          openingHours[day].forEach(timeSlot => {
+              const p = document.createElement('p');
+              p.textContent = timeSlot;
+              hoursContainer.appendChild(p);
+          });
+          li.appendChild(hoursContainer);
+          hoursDisplay.appendChild(li);
+      });
+
+      if (emergencyNotice?.enabled) {
+          emergencyNoticeEl.textContent = emergencyNotice.weeklyMessage;
+          emergencyNoticeEl.style.display = 'block';
+      } else {
+          emergencyNoticeEl.style.display = 'none';
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchAllData().then(() => {
+      updateLiveStatus();
+      updateWeeklyHours();
+      setInterval(updateLiveStatus, 1000);
+      setInterval(fetchAllData, 60 * 1000);
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (mainStatusElement && mainStatusWrapper) {
+      adjustFontSizeToFit(mainStatusElement, mainStatusWrapper);
+    }
+  });
+</script>
+
+</body>
+</html>
